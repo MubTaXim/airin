@@ -1,20 +1,44 @@
-app = "airin-project" # Replace with your app name on Fly.io
+app = "airin-project" # Replace with your Fly.io app name
 
+# Use a pre-built Docker image for Airin
 [build]
-  image = "Dockerfile"
+  image = "ghcr.io/noname968/airin:latest"
 
 [env]
-  PORT = "3000" # The port your app listens to (default for Node.js)
+  PORT = "3000" # Ensure this matches the port exposed by the app
+  MONGO_INITDB_ROOT_USERNAME = "root"
+  MONGO_INITDB_ROOT_PASSWORD = "somePass"
 
-[http_service]
+[[services]]
   internal_port = 3000
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
+  protocol = "tcp"
+
+  # Routes HTTP and HTTPS traffic to the app
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  # Optional: Health check endpoint
+  [services.health_checks]
+    path = "/healthz" # Adjust to match your app's health check endpoint
+    interval = "15s"
+    timeout = "5s"
 
 [mounts]
-  source = "data"
-  destination = "/data" # Optional: Mount for persistent storage (if needed)
+  # Persistent storage for MongoDB
+  [[mounts]]
+  source = "db_data"
+  destination = "/data/db"
 
-[deploy]
-  release_command = "npm run build && npm run start" # Adjust based on your app
+  # Persistent storage for Redis
+  [[mounts]]
+  source = "redis_cache"
+  destination = "/data/cache"
+
+# Experimental: Use Docker Compose for multi-service setup
+[experimental]
+  cmd = "docker-compose up"
